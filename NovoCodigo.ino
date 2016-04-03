@@ -1,3 +1,4 @@
+#include <Wire.h>
 #include <HMC5883L.h>
 
 #define velocidadeMotorDireita 6 
@@ -20,6 +21,15 @@ HMC5883L compass;
  int direcaoDireita;
  int direcaoEsquerda;
  int direcaoFrente;
+ 
+ //contador lado
+ int contadorDireita = 0;
+ int contadorEsquerda = 0;
+ int contadorFrente = 0;
+ 
+ //registro de volta ao meio
+ int registroEsquerda;
+ int registroDireita;
 
 #define infraReceptor  17//infra-vermelho receptor.
 #define infraEmissorEsquerda 13//infra-vermelho tranmissor da esquerda
@@ -134,54 +144,62 @@ void setup(){
   compass.SetMeasurementMode(Measurement_Continuous);// Set the measurement mode to Continuous
   
   Serial.begin(9600);
+  
+  //Iniciar parador
+  motor(frente,0,frente,0);
+  delay(2000);
 }
 
 void loop(){
- /* valoresSensorLinhas();
-  Serial.print("0: ");
-  Serial.println(sensorLinhas[0]);
-  Serial.print("1: ");
-  Serial.println(sensorLinhas[1]);
-  Serial.print("2: ");
-  Serial.println(sensorLinhas[2]);
-  Serial.print("3: ");
-  Serial.println(sensorLinhas[3]);
-  Serial.print("4: ");
-  Serial.println(sensorLinhas[4]);
-  motor(tras,50,tras,50);
-  delay(2000);
-  motor(frente,50,frente,50);
-  delay(2000);
-  motor(frente,50,frente,50);
-  if(bussolaX>ladoFrente){
-    motor(frente,50,frente,75);
-  }else if(bussolaX<170){
-    motor(frente,75,frente,50);
-  }*/
-  bussola();
-  pulsosSensorProx();
-  if(contadorPulsos > 20 && sensorLinhas[2] < 500){
-    motor(tras,50,tras,50);
-    delay(500);
-      if(ladoFrente){
-          if(bussolaX > ladoEsquerdo){
-            while(bussolaX > ladoDireito){
-              motor(tras,50,frente,50); 
+ 
+  if(contadorFrente < 10){
+    bussola();
+    pulsosSensorProx();
+    motor(frente,50,frente,50);
+    if(bussolaX>direcaoFrente){
+      motor(frente,50,frente,70);
+    }else if(bussolaX<direcaoFrente){
+      motor(frente,70,frente,50);
+    }
+    if(sensorLinhas[2] < 500 && contadorPulsos < 20){
+          contadorFrente++;
+          delay(200);
+    }
+    
+    if(sensorLinhas[2] < 500 && contadorPulsos > 20){ 
+         if(ladoFrente){
+            bussola();
+            pulsosSensorProx();
+            motor(tras,50,tras,50);
+            delay(250);
+            while(bussolaX > direcaoEsquerda){
+              bussola();
+              motor(tras,50,frente,50);
+            } 
+            motor(frente,50,frente,50);
+            delay(500);
+            ladoEsquerdo = true;
+            ladoFrente = false;
+            registroEsquerda = contadorFrente+2;
+            contadorEsquerda++;
+            while(bussolaX < direcaoFrente){
+              bussola();
+              motor(frente,50,tras,50);
             }
-          }
-          ladoFrente = false;
-          ladoEsquerdo = true;
-          contadorPulsos = 0;
-      }
-  else if(ladoEsquerdo){
-          motor(frente,50,frente,50);
-          delay(1000);
-          while(bussolaX < ladoFrente){
-            motor(frente,50,tras,50);
-          }
-          ladoFrente = true;
-          direcaoEsquerda++;
-      }
-  }
+         }else if(ladoEsquerdo == true && registroEsquerda == contadorFrente){
+             bussola();
+             pulsosSensorProx();
+             while(bussolaX > direcaoDireita){
+               bussola();
+               motor(frente,50,tras,50);
+             }
+             motor(frente,50,frente,50);
+             delay(contadorEsquerda*500);
+             registroEsquerda = 0;
+             contadorEsquerda = 0;
+         }
+    }
+   
+    }
 }
 
